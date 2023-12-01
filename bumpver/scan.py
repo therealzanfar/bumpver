@@ -6,8 +6,9 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Iterator, List, Optional
 
-from igittigitt import IgnoreParser
 from semver import Version
+
+from bumpver.config import Config
 
 # The semver REGEX expects a version to be on it's own line (or a standalone
 # string). Modify it so that it looks for a version anywhere in a string.
@@ -71,7 +72,7 @@ def scan_file(file_path: Path) -> Optional[FileVersionInstances]:
 
 def scan_filetree(
     root_path: Path,
-    ignore: IgnoreParser,
+    config: Config,
 ) -> Iterator[FileVersionInstances]:
     """Scan a filetree for files containing version strings."""
     logger = logging.getLogger(__name__)
@@ -79,15 +80,17 @@ def scan_filetree(
     logger.debug(f"Scanning directory {root_path}")
 
     if not root_path.is_dir():
-        raise TypeError(f"Tree root path ('{root_path}') is not a directory.")
+        raise TypeError(
+            f"Tree root path ('{root_path}') is not a directory.",
+        )
 
     for child_path in root_path.iterdir():
-        if ignore.match(child_path):
+        if config.ignore_path(child_path):
             logger.debug(f"Ignoring {child_path}")
             continue
 
         if child_path.is_dir():
-            yield from scan_filetree(child_path, ignore=ignore)
+            yield from scan_filetree(child_path, config=config)
 
         if child_path.is_file():
             instances = scan_file(child_path)
