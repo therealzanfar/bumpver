@@ -4,7 +4,7 @@ import logging
 import re
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Iterator, List, Optional
+from typing import Iterable, Iterator, List, Optional
 
 from semver import Version
 
@@ -96,3 +96,10 @@ def scan_filetree(
             instances = scan_file(child_path)
             if instances is not None:
                 yield instances
+
+
+def versions_match(instances: Iterable[FileVersionInstances]) -> bool:
+    """Determine if all collected versions match each other."""
+    return (
+        len({version.version for file in instances for version in file.instances}) == 1
+    )

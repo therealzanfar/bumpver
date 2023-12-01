@@ -9,10 +9,19 @@ import click
 
 from bumpver.cli import CLICK_CONTEXT, print_version_report, setup_logging
 from bumpver.config import Config
-from bumpver.scan import scan_filetree
+from bumpver.scan import scan_filetree, versions_match
 
 
 @click.command(context_settings=CLICK_CONTEXT)
+@click.option(
+    "--force",
+    "-f",
+    is_flag=True,
+    flag_value=True,
+    default=False,
+    type=bool,
+    help="Force the update even if versions do not match, or the new version is older.",
+)
 @click.option(
     "--quiet",
     "-q",
@@ -24,6 +33,7 @@ from bumpver.scan import scan_filetree
 )
 @click.option("--verbose", "-v", count=True, help="Increase the logging verbosity.")
 def cli_main(
+    force: bool = False,
     quiet: bool = False,
     verbose: int = 0,
 ) -> int:
@@ -37,13 +47,20 @@ def cli_main(
     config = Config()
 
     # Scan files for current versions
-    instances = list(scan_filetree(config.cwd, config=config))
+    versioned_files = list(scan_filetree(config.cwd, config=config))
+    if len(versioned_files) <= 0:
+        if not quiet:
+            print("No versioned files found.")
+        return 0
+
     if not quiet:
-        print_version_report(instances)
+        print_version_report(versioned_files)
 
     # Check that current versions match, bail out if not forced
-
-    # Set the current version to the latest found
+    if not versions_match(versioned_files) and not force:
+        if not quiet:
+            print("Versions do not match; aborting.")
+        return 1
 
     # Calculate the bumped version
     # Prompt for changes, if not quiet
