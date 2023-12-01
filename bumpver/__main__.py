@@ -7,14 +7,18 @@ import sys
 from pathlib import Path
 
 import click
+import igittigitt
 
-from bumpver.cli import CLICK_CONTEXT, setup_logging
+from bumpver.cli import CLICK_CONTEXT, print_version_report, setup_logging
 from bumpver.scan import scan_filetree
 
 
 @click.command(context_settings=CLICK_CONTEXT)
 @click.option("-v", "--verbose", count=True)
-def cli_main(verbose: int = 0) -> int:
+def cli_main(
+    quiet: bool = False,
+    verbose: int = 0,
+) -> int:
     """CLI Entry Point."""
     args = locals().items()
     setup_logging(verbose)
@@ -22,9 +26,15 @@ def cli_main(verbose: int = 0) -> int:
     logger.debug("Running with options: %s", ", ".join(f"{k!s}={v!r}" for k, v in args))
 
     # Load config
-    # Scan files for current versions
     cwd = Path.cwd()
-    instances = scan_filetree(cwd)
+    parser = igittigitt.IgnoreParser()
+    parser.parse_rule_files(base_dir=cwd)
+    parser.add_rule(".git/", base_path=cwd)
+
+    # Scan files for current versions
+    instances = list(scan_filetree(cwd, ignore=parser))
+    if not quiet:
+        print_version_report(instances)
     # Check that current versions match, bail out if not forced
     # Set the current version to the latest found
 

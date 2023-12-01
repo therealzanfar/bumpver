@@ -45,6 +45,7 @@ bumpver = 'bumpver.__main__:cli_main'
 python = "^3.8"
 click = "^8.1.7"
 rich = "^13.7.0"
+igittigitt = "^2.1.4"
 
 [tool.poetry.dev-dependencies]
 black = "^23.11.0"

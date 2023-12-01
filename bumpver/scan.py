@@ -1,10 +1,12 @@
 """Code for scanning files for contained version strings."""
 
+import logging
 import re
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Iterator, List, Optional
 
+from igittigitt import IgnoreParser
 from semver import Version
 
 # The semver REGEX expects a version to be on it's own line (or a standalone
@@ -36,6 +38,10 @@ class FileVersionInstances:
 
 def scan_file(file_path: Path) -> Optional[FileVersionInstances]:
     """Scan a file for version strings."""
+    logger = logging.getLogger(__name__)
+
+    logger.debug(f"Scanning file {file_path}")
+
     if not file_path.is_file():
         raise TypeError(f"File path ('{file_path}') is not a file.")
 
@@ -63,14 +69,25 @@ def scan_file(file_path: Path) -> Optional[FileVersionInstances]:
     return None
 
 
-def scan_filetree(root_path: Path) -> Iterator[FileVersionInstances]:
+def scan_filetree(
+    root_path: Path,
+    ignore: IgnoreParser,
+) -> Iterator[FileVersionInstances]:
     """Scan a filetree for files containing version strings."""
+    logger = logging.getLogger(__name__)
+
+    logger.debug(f"Scanning directory {root_path}")
+
     if not root_path.is_dir():
         raise TypeError(f"Tree root path ('{root_path}') is not a directory.")
 
     for child_path in root_path.iterdir():
+        if ignore.match(child_path):
+            logger.debug(f"Ignoring {child_path}")
+            continue
+
         if child_path.is_dir():
-            yield from scan_filetree(child_path)
+            yield from scan_filetree(child_path, ignore=ignore)
 
         if child_path.is_file():
             instances = scan_file(child_path)

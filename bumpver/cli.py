@@ -2,8 +2,12 @@
 
 
 import logging
+from pathlib import Path
+from typing import List
 
 from rich.logging import RichHandler
+
+from bumpver.scan import FileVersionInstances
 
 CLICK_CONTEXT = {"help_option_names": ["-h", "--help"]}
 
@@ -49,3 +53,23 @@ def setup_logging(verbosity: int = 0, force: bool = False) -> None:
             "Ignoring logging setup request: "
             "handler already exists at desired or greater level",
         )
+
+
+def print_version_report(file_instances: List[FileVersionInstances]) -> None:
+    """Print a report of the version instances provided."""
+    file_instances.sort(key=lambda i: i.file_path)
+    cwd = Path.cwd()
+
+    pathlen = max(len(str(f.file_path.relative_to(cwd))) for f in file_instances)
+    linelen = 3
+    # charlen = 3
+
+    for file in file_instances:
+        file.instances.sort(key=lambda i: (i.line_no, i.char_no))
+
+        for version in file.instances:
+            print(
+                f"{file.file_path.relative_to(cwd)!s:{pathlen}s} "
+                f"line {version.line_no:{linelen}d}: "
+                f"found version '{version.version!s}'",
+            )
